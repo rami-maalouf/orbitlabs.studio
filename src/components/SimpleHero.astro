@@ -121,6 +121,46 @@
         >
         <span class="description">- Record two iPhone cameras at the same time. Free and open source.</span>
       </li>
+      <li>
+        <span class="emoji">💠</span>
+        <a
+          href="https://sapphire.orbitlabs.studio/"
+          class="project-link"
+          target="_blank"
+          >Sapphire</a
+        >
+        <span class="description">- A Markdown editor for the vault you already have.</span>
+      </li>
+      <li>
+        <span class="emoji">⚡</span>
+        <a
+          href="https://flint.orbitlabs.studio/"
+          class="project-link"
+          target="_blank"
+          >Flint</a
+        >
+        <span class="description">- A private habit tracker. Keep the flame lit.</span>
+      </li>
+      <li>
+        <span class="emoji">✏️</span>
+        <a
+          href="https://draw.orbitlabs.studio/"
+          class="project-link"
+          target="_blank"
+          >Exact Draw</a
+        >
+        <span class="description">- A lightweight Mac app for your Excalidraw files.</span>
+      </li>
+      <li>
+        <span class="emoji">📨</span>
+        <a
+          href="https://mux.orbitlabs.studio/"
+          class="project-link"
+          target="_blank"
+          >Mux</a
+        >
+        <span class="description">- All your chats in one inbox, through a server you own.</span>
+      </li>
     </ul>
   </div>
 </div>
@@ -140,7 +180,7 @@
     font-size: 1.2em;
     line-height: 1.25em;
     letter-spacing: 0.5px;
-    /* padding: 2rem; */
+    padding: 0 1.25rem;
   }
 
   .content {
@@ -172,21 +212,23 @@
     padding: 0;
   }
 
+  /* the name and description wrap as one line of text, indented past the emoji */
   .projects li {
     margin-bottom: 0.8rem;
     font-size: 1.1rem;
-    display: flex;
-    align-items: baseline;
+    position: relative;
+    padding-left: 2.1rem;
   }
 
   .emoji {
-    margin-right: 0.8rem;
+    position: absolute;
+    left: 0;
   }
 
   .project-link {
     color: #4daafc;
     text-decoration: underline;
-    margin-right: 0.5rem;
+    white-space: nowrap;
   }
 
   .project-link:hover {
