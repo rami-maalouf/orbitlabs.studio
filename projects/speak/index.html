@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#eeeae1" />
+    <title>Speak Text · Orbit Labs</title>
+    <meta
+      name="description"
+      content="Listen to selected text in a natural voice. Try the local Kokoro reader in your browser or get Speak Text for Raycast on Mac."
+    />
+    <link rel="icon" href="assets/icon.png" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="https://orbitlabs.studio"
+        ><i class="orbit"></i>Orbit Labs</a
+      >
+      <nav>
+        <a href="#reader">Web reader</a><a href="#mac">Raycast extension</a>
+      </nav>
+    </header>
+    <main>
+      <section class="hero">
+        <div class="intro">
+          <p class="kicker"><i></i> SPEAK TEXT</p>
+          <h1>Give text<br />a <em>voice.</em></h1>
+          <p class="lead">
+            Turn a passage into something you can listen to. A natural voice, at
+            your pace, right on your device.
+          </p>
+          <a class="primary" href="#reader" id="try">Try your own text</a
+          ><a class="secondary" href="#mac">Get it for Mac</a>
+        </div>
+        <section id="reader" class="deck" aria-label="Speak Text audio player">
+          <div class="deck-head">
+            <strong>Speak Text</strong
+            ><span class="grille" aria-hidden="true"></span>
+          </div>
+          <div class="screen">
+            <div class="screen-head">
+              <span>KOKORO / HEART</span><span id="clock">0:00</span>
+            </div>
+            <canvas id="wave" aria-hidden="true"></canvas>
+            <div class="screen-foot">
+              <span id="indicator">Ready to play</span><span>EN-US</span>
+            </div>
+          </div>
+          <div class="deck-controls">
+            <button id="play" class="play" aria-label="Play voice sample">
+              <span id="symbol">▶</span
+              ><span id="verb">Play sample</span></button
+            ><label class="rate"
+              >Speed
+              <select id="speed" aria-label="Playback speed">
+                <option>0.5×</option>
+                <option>0.75×</option>
+                <option selected>1×</option>
+                <option>1.25×</option>
+                <option>1.5×</option>
+                <option>1.75×</option>
+                <option>2×</option>
+              </select></label
+            >
+          </div>
+          <div class="copybox">
+            <div class="switch">
+              <button id="sample" aria-pressed="true">Voice sample</button
+              ><button id="custom" aria-pressed="false">Your text</button>
+            </div>
+            <p id="quote">
+              “You can listen while you work. Pause whenever you like, then pick
+              up right where you left off.”
+            </p>
+            <div id="editor" hidden>
+              <textarea
+                id="input"
+                aria-label="Text to read aloud"
+                rows="3"
+                maxlength="2500"
+                placeholder="Paste a passage to read aloud…"
+              ></textarea
+              ><small
+                >First use downloads the English voice. Your text stays on this
+                device.</small
+              >
+            </div>
+            <p id="message" role="status"></p>
+          </div>
+        </section>
+      </section>
+      <section id="mac" class="mac">
+        <div>
+          <p class="kicker">ON THE MAC</p>
+          <h2>Highlight. Hit play.</h2>
+          <p>
+            Select text in any app and run
+            <b>Speak Selected or Copied Text</b> in Raycast. With no selection,
+            it reads your clipboard. The floating player follows along while you
+            work.
+          </p>
+          <a class="primary dark" href="assets/Speak-Text.rayext" download
+            >Download for Raycast</a
+          >
+          <p class="fine">
+            macOS 13+ · Intel and Apple silicon ·
+            <a href="https://github.com/raycast/extensions/pull/33992"
+              >Store submission</a
+            >
+          </p>
+          <details>
+            <summary>Installation and first use</summary>
+            <p>
+              Open the downloaded bundle with a version of Raycast that supports
+              extension bundles. For a source installation, follow the
+              <a
+                href="https://github.com/rami-maalouf/raycast-extensions/tree/add-speak-highlighted-text/extensions/speak-highlighted-text"
+                >build instructions</a
+              >. The Mac player downloads about 172 MB once, then works offline.
+            </p>
+          </details>
+        </div>
+        <div class="shortcuts">
+          <h3>Player shortcuts</h3>
+          <p>Pause or resume <kbd>Space</kbd></p>
+          <p>
+            Skip five seconds <span><kbd>←</kbd> <kbd>→</kbd></span>
+          </p>
+          <p>
+            Change speed <span><kbd>−</kbd> <kbd>=</kbd></span>
+          </p>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <a class="brand" href="https://orbitlabs.studio"
+        ><i class="orbit"></i>Orbit Labs</a
+      ><a
+        href="https://github.com/rami-maalouf/raycast-extensions/tree/add-speak-highlighted-text/extensions/speak-highlighted-text"
+        >Source on GitHub</a
+      >
+    </footer>
+    <script type="module" src="player.js"></script>
+  </body>
+</html>
