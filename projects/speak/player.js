@@ -1,167 +1,247 @@
+// the page's player: a voice sample, or the visitor's own text generated in a worker.
+// the waveform is the scrubber, and the mac player's shortcuts work here too.
 const el = (id) => document.getElementById(id);
-const player = new Audio("assets/heart.wav");
+const SAMPLE = "assets/heart.wav";
+const RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+const BARS = 56;
+// what the wave shows before any audio exists for the visitor's text.
+const FLAT = Array(BARS).fill(0.12);
+
+const player = new Audio(SAMPLE);
 player.preload = "metadata";
-let tab = "sample",
-  readyText = "",
-  objectUrl,
-  worker,
-  pending = false,
-  samplePeaks = [],
-  peaks = [];
-const canvas = el("wave");
-function draw() {
-  const width = canvas.clientWidth,
-    height = canvas.clientHeight,
-    ratio = devicePixelRatio;
-  canvas.width = width * ratio;
-  canvas.height = height * ratio;
-  const ctx = canvas.getContext("2d");
-  ctx.scale(ratio, ratio);
-  const step = width / Math.max(1, peaks.length);
-  peaks.forEach((peak, i) => {
-    const h = Math.max(3, peak * (height - 12));
-    ctx.fillStyle =
-      i / peaks.length < player.currentTime / player.duration
-        ? "#f9ffd5"
-        : "#a4c785";
-    ctx.fillRect(i * step, (height - h) / 2, Math.max(1, step - 2), h);
+const wave = el("wave");
+const canvas = wave.querySelector("canvas");
+
+let own = false;
+let pending = false;
+let rate = 2;
+let readyText = "";
+let objectUrl = null;
+let worker = null;
+let samplePeaks = FLAT;
+let peaks = FLAT;
+let frame = 0;
+
+// any number of peaks, drawn as BARS bars.
+function fit(source) {
+  return Array.from({ length: BARS }, (_, i) => {
+    const from = Math.floor((i * source.length) / BARS);
+    const to = Math.max(from + 1, Math.floor(((i + 1) * source.length) / BARS));
+    return Math.max(...source.slice(from, to));
   });
-  const t = Math.floor(player.currentTime || 0);
-  el("clock").textContent =
-    Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0");
 }
-fetch("assets/sample-peaks.json")
-  .then((r) => r.json())
-  .then((p) => {
-    samplePeaks = p;
-    if (tab === "sample") peaks = p;
-    draw();
+
+const clock = (seconds) => {
+  const t = Math.floor(seconds || 0);
+  return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0");
+};
+
+const progress = () => (player.duration ? player.currentTime / player.duration : 0);
+
+function draw() {
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  const ratio = devicePixelRatio || 1;
+  if (canvas.width !== width * ratio || canvas.height !== height * ratio) {
+    canvas.width = width * ratio;
+    canvas.height = height * ratio;
+  }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+  const style = getComputedStyle(wave);
+  const played = style.getPropertyValue("--ink");
+  const rest = style.getPropertyValue("--bars");
+  const pitch = width / BARS;
+  const bar = pitch / 2;
+  const at = progress();
+  peaks.forEach((peak, i) => {
+    const h = Math.max(bar, peak * height);
+    ctx.fillStyle = (i + 0.5) / BARS <= at ? played : rest;
+    ctx.beginPath();
+    ctx.roundRect(i * pitch + bar / 2, (height - h) / 2, bar, h, bar / 2);
+    ctx.fill();
   });
-new ResizeObserver(draw).observe(canvas);
+  el("clock").textContent = clock(player.currentTime);
+  wave.setAttribute("aria-valuenow", String(Math.round(at * 100)));
+  wave.setAttribute("aria-valuetext", clock(player.currentTime));
+}
+
+// while audio plays, the wave fills every frame instead of four times a second.
+function loop() {
+  draw();
+  frame = player.paused || player.ended ? 0 : requestAnimationFrame(loop);
+}
+
 function sync() {
   const playing = !player.paused && !player.ended;
-  const title = pending
-    ? "Cancel"
-    : playing
-      ? "Pause"
-      : player.ended
-        ? "Replay"
-        : player.currentTime
-          ? "Resume"
-          : tab === "sample"
-            ? "Play sample"
-            : "Read aloud";
-  el("verb").textContent = title;
-  el("play").setAttribute("aria-label", title);
-  el("symbol").textContent = playing ? "Ⅱ" : pending ? "■" : "▶";
-  el("indicator").textContent = pending
-    ? "Preparing voice"
-    : playing
-      ? "Playing"
-      : player.ended
-        ? "Finished"
-        : player.currentTime
-          ? "Paused"
-          : "Ready to play";
+  const label = pending ? "Cancel" : playing ? "Pause" : player.ended ? "Play again" : "Play";
+  el("play").dataset.state = pending ? "busy" : playing ? "playing" : "idle";
+  el("play").setAttribute("aria-label", label);
+  el("rate").textContent = RATES[rate] + "×";
+  el("slower").disabled = rate === 0;
+  el("faster").disabled = rate === RATES.length - 1;
+  if (playing && !frame) frame = requestAnimationFrame(loop);
   draw();
 }
-function clearJob() {
+
+const say = (text) => (el("message").textContent = text);
+
+function stopJob() {
   if (worker) worker.terminate();
   worker = null;
   pending = false;
 }
-function setTab(next) {
-  clearJob();
-  player.pause();
-  tab = next;
-  readyText = "";
-  el("message").textContent = "";
+
+function forget() {
   if (objectUrl) URL.revokeObjectURL(objectUrl);
   objectUrl = null;
-  if (next === "sample") player.src = "assets/heart.wav";
-  else player.removeAttribute("src");
+  readyText = "";
+}
+
+function setOwn(next) {
+  stopJob();
+  player.pause();
+  forget();
+  own = next;
+  say("");
+  if (own) player.removeAttribute("src");
+  else player.src = SAMPLE;
   player.load();
-  peaks = next === "sample" ? samplePeaks : [];
-  for (const id of ["sample", "custom"])
-    el(id).setAttribute("aria-pressed", String(id === next));
-  el("editor").hidden = next !== "custom";
-  el("quote").hidden = next === "custom";
-  if (next === "custom") el("input").focus({ preventScroll: true });
+  peaks = own ? FLAT : samplePeaks;
+  el("input").hidden = !own;
+  el("mode").textContent = own ? "Back to the sample" : "Read your own text";
+  if (own) el("input").focus({ preventScroll: true });
   sync();
 }
-async function startAudio() {
-  player.playbackRate = parseFloat(el("speed").value);
+
+async function start() {
+  player.playbackRate = RATES[rate];
   try {
     await player.play();
   } catch {
-    el("message").textContent = "Press play to start the audio.";
+    say("Press play to start the audio.");
   }
   sync();
 }
+
 function failed() {
-  clearJob();
+  stopJob();
   sync();
-  el("message").textContent =
-    "Couldn’t prepare the voice. Check your connection and try again, or listen to the sample.";
+  say("The voice did not load. Check your connection, then try again.");
 }
-el("play").onclick = () => {
-  if (pending) {
-    clearJob();
-    el("message").textContent = "";
-    sync();
-    return;
-  }
-  if (!player.paused && !player.ended) {
-    player.pause();
-    return;
-  }
-  const text = el("input").value.trim();
-  if (tab === "sample" || (objectUrl && readyText === text)) {
-    startAudio();
-    return;
-  }
-  if (!text) {
-    el("message").textContent = "Paste some text to read.";
-    el("input").focus();
-    return;
-  }
+
+function generate(text) {
   pending = true;
   sync();
-  el("message").textContent = "Loading the local English voice…";
-  worker ??= new Worker("./voice-worker.js", { type: "module" });
+  say("Loading the voice…");
+  worker = new Worker("./voice-worker.js", { type: "module" });
   worker.onerror = failed;
   worker.onmessage = ({ data }) => {
-    if (data.status) {
-      el("message").textContent = data.status;
-      return;
-    }
+    if (data.status) return say(data.status);
     if (data.error) {
       console.warn(data.error);
-      failed();
-      return;
+      return failed();
     }
-    pending = false;
+    stopJob();
+    forget();
     readyText = text;
-    if (objectUrl) URL.revokeObjectURL(objectUrl);
     objectUrl = URL.createObjectURL(data.blob);
     player.src = objectUrl;
-    peaks = data.peaks;
-    el("message").textContent = "";
-    startAudio();
+    peaks = fit(data.peaks);
+    say("");
+    start();
   };
   worker.postMessage(text);
-};
+}
+
+function toggle() {
+  if (pending) {
+    stopJob();
+    say("");
+    return sync();
+  }
+  if (!player.paused && !player.ended) return player.pause();
+  const text = el("input").value.trim();
+  if (!own || (objectUrl && readyText === text)) return start();
+  if (!text) {
+    say("Paste some text first.");
+    return el("input").focus();
+  }
+  generate(text);
+}
+
+function seek(seconds) {
+  if (!player.duration) return;
+  player.currentTime = Math.min(player.duration, Math.max(0, seconds));
+  draw();
+}
+
+function step(by) {
+  rate = Math.min(RATES.length - 1, Math.max(0, rate + by));
+  player.playbackRate = RATES[rate];
+  sync();
+}
+
+el("play").onclick = toggle;
+el("mode").onclick = () => setOwn(!own);
+el("slower").onclick = () => step(-1);
+el("faster").onclick = () => step(1);
+
 el("input").oninput = () => {
-  if (pending) clearJob();
+  if (pending) stopJob();
   player.pause();
-  el("message").textContent = "";
+  say("");
   sync();
 };
-el("sample").onclick = () => setTab("sample");
-el("custom").onclick = () => setTab("custom");
-el("try").onclick = () => setTab("custom");
-el("speed").onchange = () => {
-  player.playbackRate = parseFloat(el("speed").value);
+
+// press or drag anywhere on the wave to move through the audio.
+const scrub = (event) => {
+  const box = wave.getBoundingClientRect();
+  seek(((event.clientX - box.left) / box.width) * player.duration);
 };
-for (const event of ["play", "pause", "ended", "timeupdate", "loadedmetadata"])
+wave.addEventListener("pointerdown", (event) => {
+  if (!player.duration) return;
+  wave.setPointerCapture(event.pointerId);
+  scrub(event);
+});
+wave.addEventListener("pointermove", (event) => {
+  if (wave.hasPointerCapture(event.pointerId)) scrub(event);
+});
+
+// the mac player's shortcuts: space, the arrows, minus and equals.
+document.addEventListener("keydown", (event) => {
+  if (event.metaKey || event.ctrlKey || event.altKey) return;
+  const target = event.target;
+  if (target instanceof HTMLTextAreaElement) return;
+  if (event.key === " ") {
+    // a focused button already takes the space key.
+    if (target instanceof HTMLButtonElement || target instanceof HTMLAnchorElement) return;
+    event.preventDefault();
+    toggle();
+  } else if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    seek(player.currentTime - 5);
+  } else if (event.key === "ArrowRight") {
+    event.preventDefault();
+    seek(player.currentTime + 5);
+  } else if (event.key === "-" || event.key === "_") {
+    step(-1);
+  } else if (event.key === "=" || event.key === "+") {
+    step(1);
+  }
+});
+
+for (const event of ["play", "pause", "ended", "seeked", "loadedmetadata"])
   player.addEventListener(event, sync);
+
+fetch("assets/sample-peaks.json")
+  .then((response) => response.json())
+  .then((data) => {
+    samplePeaks = fit(data);
+    if (!own) peaks = samplePeaks;
+    draw();
+  });
+
+new ResizeObserver(draw).observe(canvas);
+sync();
