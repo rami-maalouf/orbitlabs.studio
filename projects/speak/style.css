@@ -25,8 +25,10 @@
   display: none !important;
 }
 
+/* sparks from the title flight may leave the page sideways: they never add a scroll bar. */
 html {
   background: var(--page);
+  overflow-x: clip;
 }
 
 body {
