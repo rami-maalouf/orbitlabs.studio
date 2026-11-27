@@ -11,6 +11,7 @@
   --bars: #3a625c;
   --glow: rgba(223, 247, 204, 0.07);
   --ring: rgba(223, 247, 204, 0.25);
+  --volt: #eaff6b;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -35,6 +36,7 @@ body {
   display: grid;
   place-items: center;
   padding: 48px 24px max(48px, env(safe-area-inset-bottom));
+  overflow-x: clip;
   color: var(--text);
   background: radial-gradient(64rem 40rem at 50% -10rem, var(--glow), transparent 70%) var(--page);
 }
@@ -75,19 +77,98 @@ button {
   color: var(--ink);
 }
 
+/* the title: two lines, and a lightning bolt as its full stop (title-flight.js). */
+.title {
+  position: relative;
+}
+
 h1 {
+  position: relative;
+  z-index: 2;
   margin: 0;
   font-family: ui-rounded, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: clamp(34px, 9.2vw, 64px);
   font-weight: 700;
   line-height: 1.04;
   letter-spacing: -0.03em;
-  text-wrap: balance;
+  white-space: nowrap;
 }
 
-h1 span {
+h1 .word {
+  position: relative;
+  display: inline-block;
+}
+
+h1 .base {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  vertical-align: baseline;
+}
+
+/* the bolt's charge: the same word in colour, shown from the left as the bolt passes through it. */
+h1 .trail {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: transparent;
+  background: linear-gradient(to right, var(--ink), var(--volt) 60%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  clip-path: inset(0 100% 0 0);
+}
+
+h1 .slot {
+  display: inline-block;
+  width: 0.42em;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* the bolt: above the words, or behind them when the flight passes behind. */
+.title-bolt {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.title-bolt svg {
   display: block;
-  color: var(--ink);
+  width: 100%;
+  height: 100%;
+  fill: var(--volt);
+  filter: drop-shadow(0 0 6px rgba(234, 255, 107, 0.55));
+}
+
+.flight-spark {
+  position: absolute;
+  z-index: 3;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.flight-ripple {
+  position: absolute;
+  z-index: 3;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 1.5px solid rgba(234, 255, 107, 0.85);
+  box-shadow: 0 0 10px rgba(234, 255, 107, 0.5);
 }
 
 .lede {

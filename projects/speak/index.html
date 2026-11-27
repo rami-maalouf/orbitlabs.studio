@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Speak Text: a simple, performant reader</title>
+    <title>Speak Text: a simple and fast reader</title>
     <meta
       name="description"
       content="Select text on your Mac and run one Raycast command. A natural voice reads it at your speed, on your device."
@@ -13,12 +13,24 @@
     <link rel="apple-touch-icon" href="assets/icon.png" />
     <link rel="stylesheet" href="style.css" />
     <script type="module" src="player.js"></script>
+    <script type="module" src="title-flight.js"></script>
   </head>
   <body>
     <main>
       <img class="mark rise" src="assets/icon.png" alt="" width="96" height="96" />
       <p class="name rise d1">Speak Text</p>
-      <h1 class="rise d2">A simple, <span>performant reader.</span></h1>
+      <!-- the title's full stop is a lightning bolt: title-flight.js flies it through "fast" and
+           lands it here. the real full stop stays in the text for screen readers. -->
+      <div class="title rise d2">
+        <h1 id="title">
+          Simple and<br />
+          <span class="word" data-flight="fast">fast<span class="trail" aria-hidden="true">fast</span><i class="base" data-flight="base"></i></span>
+          reader<span class="slot" data-flight="slot"><span class="sr-only">.</span></span>
+        </h1>
+        <div class="title-bolt" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M13.6 1.5 4 13.6h6.4L9.2 22.5 20 9.6h-6.9Z" /></svg>
+        </div>
+      </div>
       <p class="lede rise d3">
         Select text on your Mac and run one Raycast command. A natural voice
         reads it at your speed, on your device.
